@@ -55,7 +55,7 @@ def _min_cycle_basis(comp, weight):
 
     # We maintain a set of vectors orthogonal to sofar found cycles
     set_orth = [set([edge]) for edge in edges_excl]
-    for k in range(N):
+    for k in xrange(N):
         # kth cycle is "parallel" to kth vector in set_orth
         new_cycle = _min_cycle(comp, set_orth[k], weight=weight)
         cb.append(list(set().union(*new_cycle)))
