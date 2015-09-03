@@ -12,6 +12,8 @@ from itertools import combinations
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import matplotlib.cm as cmx
 
 import networkx as nx
 
@@ -154,13 +156,18 @@ class CubicLattice:
         
         return np.argmax(dists)
 
-if __name__ == '__main__':
-    # nice plotting
-    sns.set(style='ticks', font_scale=1.2)
-    sns.set_style({"xtick.direction": "in","ytick.direction": "in"})
-    params = {'mathtext.fontset': 'stixsans'}
-    plt.rcParams.update(params)
+class PeriodicLattice(CubicLattice):
+    def __init__(self, n):
+        """ Create a new periodic lattice with given linear dimension.
+        Final number of nodes will be n**2.
+        """
+        self.G = nx.grid_graph([n, n], periodic=True)
+        self.G = nx.convert_node_labels_to_integers(self.G,
+                label_attribute='pos')
+        #self._find_cycle_basis()
+        #self._find_cycle_dual()
 
+def cube_network_analysis():
     # test
     n = 5
     cl = CubicLattice(n)
@@ -230,3 +237,58 @@ if __name__ == '__main__':
     
     plt.show()
 
+if __name__ == '__main__':
+    # nice plotting
+    sns.set(style='ticks', font_scale=1.2)
+    sns.set_style({"xtick.direction": "in","ytick.direction": "in"})
+    params = {'mathtext.fontset': 'stixsans'}
+    plt.rcParams.update(params)
+
+    # analyze periodic lattice
+    n = 50
+
+    cl = PeriodicLattice(n)
+
+    print "Number of cycles in cycle basis:"
+    print cl.G.number_of_edges() - cl.G.number_of_nodes() + 1
+    print cl.G.number_of_edges()
+    print cl.G.number_of_nodes()
+
+    pos = dict((n, d['pos']) for n, d in cl.G.nodes_iter(data=True))
+    #nx.draw_networkx_edges(cl.G, pos=pos)
+    #nx.draw_networkx_labels(cl.G, pos=pos)
+ 
+    ## draw edges in cycle basis
+    #colors = sns.color_palette('hls', len(cl.edge_cycle_basis))
+    #for cy, col in zip(cl.edge_cycle_basis, colors):
+    #    nx.draw_networkx_edges(cl.G, pos=pos,
+    #            edgelist=cy, edge_color=len(cy)*[col], width=2)
+    #plt.show()
+
+    e = cl.G.edges()[cl.central_edge()]
+    e = cl.G.edges()[0]
+    DeltaF = np.abs(cl.perturb_edge(e))
+    DeltaF /= DeltaF.max()
+    #edge_dists = cl.edge_distances(e)
+    #cycl_dists = cl.cycle_distances(e)
+    
+    # plot perturbation strength
+    cmap = plt.get_cmap('jet')
+    norm = colors.LogNorm(vmin=DeltaF.min(), vmax=1)
+    scalar_map = cmx.ScalarMappable(norm=norm, cmap=cmap)
+    
+    plt.figure()
+    ax = plt.gca()
+    
+    # unweighted
+    scalar_map.set_array(DeltaF)
+    cols = list(scalar_map.to_rgba(DeltaF))
+
+    nx.draw_networkx_edges(cl.G, pos=pos, edge_color=cols,
+            width=5*DeltaF**0.2)
+
+    print e
+    nx.draw_networkx_edges(cl.G, pos=pos, edgelist=[e],
+            width=10)
+
+    plt.show()
